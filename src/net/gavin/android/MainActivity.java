@@ -6,25 +6,22 @@ import java.io.IOException;
 
 import org.apache.http.client.ClientProtocolException;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.app.Activity;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
-import android.os.Bundle;
-import android.app.Activity;
-import android.app.ListActivity;
-import android.view.Gravity;
-import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
-import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.TextView;
 
 public class MainActivity extends Activity implements OnClickListener {
 
@@ -34,6 +31,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	
 	private String[] files;
 	
+	private String selectedFileName;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -41,26 +40,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		
 		btnDownload=(Button) this.findViewById(R.id.button1);
 		btnDownload.setOnClickListener(this);
-		
-		ListView list = (ListView)findViewById(R.id.listView1);
-		
-		//prepare for data
-		File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-	              Environment.DIRECTORY_PODCASTS), Constants.APP_NAME);
-		if (! mediaStorageDir.exists()){
-	        if (! mediaStorageDir.mkdirs()){
-	            Log.d(LOG_TAG, "failed to create directory");	            
-	        }
-	    }
-		
-		files = mediaStorageDir.list();
-		if (files == null){
-			files = new String[]{"no file permission!"};
-		}
-		
-		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.listitem, files);
-		list.setAdapter(adapter);
-		registerForContextMenu(list);
+		ListView listView = refreshListView1();
+		registerForContextMenu(listView);
 	}
 
 	@Override
@@ -71,8 +52,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 
 	@Override
-	public void onClick(View arg0) {
-		
+	public void onClick(View arg0) {	
 		PodSubscriber podSubscriber = new PodSubscriber();
 		try {
 			PubItem item = podSubscriber.getLatest();
@@ -97,5 +77,75 @@ public class MainActivity extends Activity implements OnClickListener {
 		
 		
 	}
+	
+	@Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+    		ContextMenuInfo menuInfo) {
+    	if (v.getId()==R.id.listView1) {
+    	    AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)menuInfo;
+    	    selectedFileName = files[info.position];
+    		String[] menuItems = getResources().getStringArray(R.array.menu); 
+    		for (int i = 0; i<menuItems.length; i++) {
+    			menu.add(Menu.NONE, i, i, menuItems[i]);
+			}
+    	}
+    }	
+
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+	    int menuItemIndex = item.getItemId();
+		String[] menuItems = getResources().getStringArray(R.array.menu);
+		String menuItemName = menuItems[menuItemIndex];
+	    if (menuItemName.equalsIgnoreCase("play")){
+	    	//play 	    	
+	    	String fileUrl = "file://"+Environment.getExternalStoragePublicDirectory(
+		              Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME + "/" + selectedFileName;
+	    	
+	    	Intent playAudioIntent = new Intent(Intent.ACTION_VIEW);
+	    	playAudioIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+	    	Uri url = Uri.parse(fileUrl);
+	    	playAudioIntent.setDataAndType(url, "audio/mp3");
+	    	startActivity(playAudioIntent);
+	    	return true;
+	    }
+	    if (menuItemName.equalsIgnoreCase("delete")){
+	    	//delete 	    	
+	    	File mediaFile = new File(Environment.getExternalStoragePublicDirectory(
+		              Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME + "/" + selectedFileName);
+	    	mediaFile.delete();
+	    	
+	    	refreshListView1();
+	    	return true;
+	    }		
+		return super.onContextItemSelected(item);
+	}
+	
+	
+	@Override
+	protected void onResume() {
+		refreshListView1();
+		super.onResume();
+	}
+
+	private ListView refreshListView1(){
+		File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+	              Environment.DIRECTORY_PODCASTS), Constants.APP_NAME);
+		if (! mediaStorageDir.exists()){
+	        if (! mediaStorageDir.mkdirs()){
+	            Log.d(LOG_TAG, "failed to create directory");	            
+	        }
+	    }
+		files = mediaStorageDir.list();
+		if (files == null){
+			files = new String[]{"no file permission!"};
+		}
+		
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.listitem, files);
+		ListView list = (ListView)findViewById(R.id.listView1);
+		list.setAdapter(adapter);
+		return list;
+	}
+	
+	
 
 }

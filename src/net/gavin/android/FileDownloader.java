@@ -16,14 +16,6 @@ import android.os.Environment;
 
 public class FileDownloader extends AsyncTask<String,String,String>{
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
-	}
-
 	@Override
 	protected String doInBackground(String... arg0) {
 		String url = arg0[0];
@@ -57,5 +49,12 @@ public class FileDownloader extends AsyncTask<String,String,String>{
 		
 		return "OK";
 	}
+
+	@Override
+	protected void onPostExecute(String result) {
+		super.onPostExecute(result);
+	}
+	
+	
 
 }
