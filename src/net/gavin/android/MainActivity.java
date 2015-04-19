@@ -17,17 +17,18 @@ import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 
-public class MainActivity extends Activity implements OnClickListener {
+public class MainActivity extends Activity {
 
 	private static final String LOG_TAG = Constants.APP_NAME;
 	
-	private Button btnDownload;
+	//private Button btnDownload;
+	
+	private ProgressBar progressBar;
 	
 	private String[] files;
 	
@@ -38,44 +39,32 @@ public class MainActivity extends Activity implements OnClickListener {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
-		btnDownload=(Button) this.findViewById(R.id.button1);
-		btnDownload.setOnClickListener(this);
+		//btnDownload=(Button) this.findViewById(R.id.button1);
+		//btnDownload.setOnClickListener(this);
+		
+		progressBar = (ProgressBar)this.findViewById(R.id.progressBar1);
+		progressBar.setVisibility(View.INVISIBLE);
+		
 		ListView listView = refreshListView1();
 		registerForContextMenu(listView);
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
+		menu.add("refresh");
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
+		getMenuInflater().inflate(R.menu.main, menu);		
 		return true;
 	}
+	
+	
 
 	@Override
-	public void onClick(View arg0) {	
-		PodSubscriber podSubscriber = new PodSubscriber();
-		try {
-			PubItem item = podSubscriber.getLatest();
-			boolean latest = false;
-			for(String fileName:files){
-				if (fileName.equalsIgnoreCase(item.getFileName())){
-					latest = true;
-				}
-			}
-			if (!latest){
-				//refresh
-				FileDownloader downloadFIle=new FileDownloader();
-				downloadFIle.execute(item.getUrl(), item.getFileName());
-			}
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	public boolean onOptionsItemSelected(MenuItem item) {
+		if (item.getTitle().equals("refresh")){
+			refresh();
 		}
-		
-		
+		return super.onOptionsItemSelected(item);
 	}
 	
 	@Override
@@ -98,7 +87,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		String menuItemName = menuItems[menuItemIndex];
 	    if (menuItemName.equalsIgnoreCase("play")){
 	    	//play 	    	
-	    	String fileUrl = "file://"+Environment.getExternalStoragePublicDirectory(
+	    	String fileUrl = "file:///"+Environment.getExternalStoragePublicDirectory(
 		              Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME + "/" + selectedFileName;
 	    	
 	    	Intent playAudioIntent = new Intent(Intent.ACTION_VIEW);
@@ -144,6 +133,31 @@ public class MainActivity extends Activity implements OnClickListener {
 		ListView list = (ListView)findViewById(R.id.listView1);
 		list.setAdapter(adapter);
 		return list;
+	}
+	
+	private void refresh(){
+		PodSubscriber podSubscriber = new PodSubscriber();
+		try {
+			PubItem item = podSubscriber.getLatest();
+			boolean latest = false;
+			for(String fileName:files){
+				if (fileName.equalsIgnoreCase(item.getFileName())){
+					latest = true;
+				}
+			}
+			if (!latest){
+				//refresh
+				progressBar.setVisibility(View.VISIBLE);
+				FileDownloader downloadFIle=new FileDownloader(progressBar);
+				downloadFIle.execute(item.getUrl(), item.getFileName());
+			}
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
 	}
 	
 	
