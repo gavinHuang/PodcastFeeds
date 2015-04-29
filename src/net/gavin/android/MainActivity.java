@@ -2,18 +2,27 @@ package net.gavin.android;
 
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
+import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.Activity;
+import android.app.FragmentManager;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,6 +30,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
@@ -51,7 +61,7 @@ public class MainActivity extends Activity {
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		menu.add("refresh");
+		menu.add("Refresh");
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);		
 		return true;
@@ -61,7 +71,7 @@ public class MainActivity extends Activity {
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-		if (item.getTitle().equals("refresh")){
+		if (item.getTitle().equals("Refresh")){
 			refresh();
 		}
 		return super.onOptionsItemSelected(item);
@@ -148,8 +158,9 @@ public class MainActivity extends Activity {
 			if (!latest){
 				//refresh
 				progressBar.setVisibility(View.VISIBLE);
-				FileDownloader downloadFIle=new FileDownloader(progressBar);
+				FileDownloader downloadFIle=new FileDownloader();
 				downloadFIle.execute(item.getUrl(), item.getFileName());
+				
 			}
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
@@ -162,4 +173,60 @@ public class MainActivity extends Activity {
 	
 	
 
+	
+	class FileDownloader extends AsyncTask<String,Integer,String>{		
+		
+		@Override
+		protected String doInBackground(String... arg0) {
+			String url = arg0[0];
+			String name = arg0[1];
+			
+			HttpClient client = new DefaultHttpClient();
+			HttpGet get = new HttpGet(url);
+			HttpResponse response;
+			try {
+				response = client.execute(get);
+				if (response.getStatusLine().getStatusCode() == 200){			
+					long totalSize = response.getEntity().getContentLength();
+					long currentSize = 0;
+					InputStream is = response.getEntity().getContent();				
+					File output = new File(Environment.getExternalStoragePublicDirectory(
+				              Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME + "/" + name);
+					FileOutputStream fos = new FileOutputStream(output);
+					byte b[] = new byte[102400];
+					int content = 0;
+					while ((content = is.read(b)) > 0){
+						fos.write(b,0,content);
+						currentSize+=content;
+						publishProgress((int)((currentSize / (float) totalSize) * 100));  
+					}
+					fos.close();
+					is.close();
+				}			
+			} catch (Exception e) {
+				return e.getMessage();
+			}
+			return "OK";
+		}
+
+		
+		@Override
+		protected void onProgressUpdate(Integer... values) {
+			super.onProgressUpdate(values);
+			progressBar.setProgress(values[0]);
+		}
+
+
+		@Override
+		protected void onPostExecute(String result) {
+			super.onPostExecute(result);
+			Toast toast = Toast.makeText(getApplicationContext(), result, Toast.LENGTH_LONG);
+			toast.setGravity(Gravity.CENTER, 0, 0);
+			toast.show();
+			progressBar.setVisibility(View.INVISIBLE);
+		}
+		
+		
+
+	}
 }

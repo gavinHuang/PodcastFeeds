@@ -2,11 +2,9 @@ package net.gavin.android;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -51,14 +49,9 @@ public class FileDownloader extends AsyncTask<String,Integer,String>{
 				fos.close();
 				is.close();
 			}			
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (Exception e) {
+			return e.getMessage();
 		}
-		
 		return "OK";
 	}
 
