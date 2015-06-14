@@ -6,6 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import net.gavin.android.database.SubscribeManager;
+import net.gavin.android.model.Subscribe;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -13,7 +16,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.Activity;
-import android.app.FragmentManager;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -32,31 +34,42 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class SubscribeActivity extends Activity {
 
 	private static final String LOG_TAG = Constants.APP_NAME;
 	
-	//private Button btnDownload;
-	
+	private SubscribeManager subscribeManager = new SubscribeManager(this);
+
 	private ProgressBar progressBar;
 	
 	private String[] files;
 	
 	private String selectedFileName;
 	
+	Subscribe subscribe = null;
+	
+	String rootPath = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
-		//btnDownload=(Button) this.findViewById(R.id.button1);
-		//btnDownload.setOnClickListener(this);
-		
 		progressBar = (ProgressBar)this.findViewById(R.id.progressBar1);
 		progressBar.setVisibility(View.INVISIBLE);
 		
+		Intent intent = getIntent();
+		String value = intent.getStringExtra("name"); 
+		rootPath += ("/" + value);
+		subscribe = subscribeManager.getSubscribeByName(value);
+		
 		ListView listView = refreshListView1();
 		registerForContextMenu(listView);
+		
+		//update title
+		
+		
 	}
 
 	@Override
@@ -97,8 +110,7 @@ public class MainActivity extends Activity {
 		String menuItemName = menuItems[menuItemIndex];
 	    if (menuItemName.equalsIgnoreCase("play")){
 	    	//play 	    	
-	    	String fileUrl = "file:///"+Environment.getExternalStoragePublicDirectory(
-		              Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME + "/" + selectedFileName;
+	    	String fileUrl = "file:///"+ rootPath + "/" + selectedFileName;
 	    	
 	    	Intent playAudioIntent = new Intent(Intent.ACTION_VIEW);
 	    	playAudioIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -109,8 +121,7 @@ public class MainActivity extends Activity {
 	    }
 	    if (menuItemName.equalsIgnoreCase("delete")){
 	    	//delete 	    	
-	    	File mediaFile = new File(Environment.getExternalStoragePublicDirectory(
-		              Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME + "/" + selectedFileName);
+	    	File mediaFile = new File(rootPath + "/" + selectedFileName);
 	    	mediaFile.delete();
 	    	
 	    	refreshListView1();
@@ -127,8 +138,7 @@ public class MainActivity extends Activity {
 	}
 
 	private ListView refreshListView1(){
-		File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-	              Environment.DIRECTORY_PODCASTS), Constants.APP_NAME);
+		File mediaStorageDir = new File(rootPath);
 		if (! mediaStorageDir.exists()){
 	        if (! mediaStorageDir.mkdirs()){
 	            Log.d(LOG_TAG, "failed to create directory");	            
@@ -146,9 +156,9 @@ public class MainActivity extends Activity {
 	}
 	
 	private void refresh(){
-		PodSubscriber podSubscriber = new PodSubscriber();
+		PodcastClient podSubscribeClient = new PodcastClient(subscribe);
 		try {
-			PubItem item = podSubscriber.getLatest();
+			PubItem item = podSubscribeClient.getLatest();
 			boolean latest = false;
 			for(String fileName:files){
 				if (fileName.equalsIgnoreCase(item.getFileName())){
@@ -159,8 +169,7 @@ public class MainActivity extends Activity {
 				//refresh
 				progressBar.setVisibility(View.VISIBLE);
 				FileDownloader downloadFIle=new FileDownloader();
-				downloadFIle.execute(item.getUrl(), item.getFileName());
-				
+				downloadFIle.execute(item.getUrl(), item.getFileName());				
 			}
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
@@ -168,11 +177,11 @@ public class MainActivity extends Activity {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}	
+		}catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 	}
-	
-	
-
 	
 	class FileDownloader extends AsyncTask<String,Integer,String>{		
 		
@@ -190,8 +199,7 @@ public class MainActivity extends Activity {
 					long totalSize = response.getEntity().getContentLength();
 					long currentSize = 0;
 					InputStream is = response.getEntity().getContent();				
-					File output = new File(Environment.getExternalStoragePublicDirectory(
-				              Environment.DIRECTORY_PODCASTS).getAbsolutePath() + "/" + Constants.APP_NAME + "/" + name);
+					File output = new File(rootPath + "/" + name);
 					FileOutputStream fos = new FileOutputStream(output);
 					byte b[] = new byte[102400];
 					int content = 0;

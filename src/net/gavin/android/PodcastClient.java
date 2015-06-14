@@ -1,6 +1,9 @@
 package net.gavin.android;
 
 import java.io.IOException;
+import java.util.List;
+
+import net.gavin.android.model.Subscribe;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -9,26 +12,19 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.os.StrictMode;
 
-public class PodSubscriber {
+public class PodcastClient {
 
-	/**
-	 * @param args
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
-	public static void main(String[] args) throws ClientProtocolException, IOException {
-		// TODO Auto-generated method stub
-
-		PodSubscriber pod = new PodSubscriber();
-		PubItem item = pod.getLatest();
-		System.out.println(item.getUrl());
-		System.out.println(item.getPubDate());
-		System.out.println(item.getLength());
+	
+	Subscribe subscribe = null;
+	List<PubItem> items = null;
+	
+	public PodcastClient(Subscribe subscribe){
+		this.subscribe = subscribe ;
 	}
 	
 	public PubItem getLatest() throws ClientProtocolException, IOException{
 		PubItem item = null;
-		String url = "http://podcastfeeds.nbcnews.com/audio/podcast/MSNBC-Nightly.xml";
+		String url = subscribe.getUrl();
 		DefaultHttpClient client = new DefaultHttpClient();
 		HttpGet get = new HttpGet(url);
 		
@@ -36,8 +32,9 @@ public class PodSubscriber {
         StrictMode.setThreadPolicy(policy);
         
 		HttpResponse response = client.execute(get);
-		if (response.getStatusLine().getStatusCode() == 200){			
-			item = new XMLParser().readXML(response.getEntity().getContent());
+		if (response.getStatusLine().getStatusCode() == 200){
+			items = new XMLParser().readXML(response.getEntity().getContent());
+			item = items.get(0);
 		}
 		return item;
 	}

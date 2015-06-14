@@ -2,6 +2,7 @@ package net.gavin.android.test;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.List;
 
 import net.gavin.android.PubItem;
 import net.gavin.android.XMLParser;
@@ -18,11 +19,17 @@ public class XMLParserTest {
 		XMLParser parser = new XMLParser();
 		
 		FileInputStream fis = new FileInputStream("D:\\kuaipan\\MSNBC-Nightly.xml");
-		PubItem item = parser.readXML(fis);
-		System.out.println(item.getUrl());
-		System.out.println(item.getPubDate());
-		System.out.println(item.getLength());
+		List<PubItem> items = parser.readXML(fis);
+		System.out.println(items.get(0).getUrl());
+		System.out.println(items.get(0).getPubDate());
+		System.out.println(items.get(0).getLength());
 		
+		
+		fis = new FileInputStream("D:\\kuaipan\\se-radio.xml");
+		items = parser.readXML(fis);
+		System.out.println(items.get(0).getUrl());
+		System.out.println(items.get(0).getPubDate());
+		System.out.println(items.get(0).getLength());
 	}
 
 }
